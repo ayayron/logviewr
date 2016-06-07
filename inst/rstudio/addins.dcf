@@ -1,0 +1,4 @@
+Name: Log Viewer
+Description: Viewing and Filtering log4R logs
+Binding: logViewerAddin
+Interactive: true
