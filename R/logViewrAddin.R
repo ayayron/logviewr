@@ -3,9 +3,11 @@
 logViewerAddin <- function() {
   library(shiny)
   library(miniUI)
-  env = ls(".GlobalEnv")
+  env = reactiveValues(env = ls(".GlobalEnv"))
   ui <- miniPage(
     gadgetTitleBar("Log Viewer"),
+    miniTabstripPanel(
+      miniTabPanel("View", icon = icon("search"),
     miniContentPanel(
       h2("View log4r Logs Currently Available in R Session"),
       hr(),
@@ -18,13 +20,32 @@ logViewerAddin <- function() {
       fillRow(checkboxInput("ignore_case", "Ignore Case?", value = TRUE), height = "75px"),
       fillRow(verbatimTextOutput("log_text"))
     )
-  )
+  ),
+    miniTabPanel("Create", icon = icon("plus-square"),
+      miniContentPanel(
+        h2("Create log4r Object in RStudio Session"),
+        hr(),
+        textInput("logger_name", "Logger Object Name", value = "logger"),
+        selectInput("create_logger_level", "Set Logger Level", 
+                    choices = list("DEBUG", "INFO", "WARN", "ERROR", "FATAL")),
+        textInput("logger_location", "Logfile location", value = "./logfile.log"),
+        actionButton("create_logger_btn", "Create Logger")
+      )
+    )
+  ))
   
   server <- function(input, output, session) {
     # Define reactive expressions, outputs, etc.
+    observeEvent(input$create_logger_btn, {
+      library(log4r)
+      assign(input$logger_name, create.logger(), envir = as.environment(".GlobalEnv"))
+      eval(parse(text = paste0("logfile(", input$logger_name ,") = file.path('", input$logger_location,"')")))
+      eval(parse(text = paste0("level(",input$logger_name, ") = '", input$create_logger_level,"'")))
+    })
+    
     observe({
       # find the current objects in the R environment that are loggers
-      obj_class = sapply(env, function(x){class(get(x))})
+      obj_class = sapply(env$env, function(x){class(get(x))})
       updateSelectInput(session, "log_list", 
                         choices = names(as.list(obj_class[obj_class == "logger"])))
     })
