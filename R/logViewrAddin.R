@@ -1,9 +1,10 @@
 #' Log Viewer Addin
+#' @import shiny
+#' @import miniUI
+#' @import log4r
 #' @export
 logViewerAddin <- function() {
-  library(shiny)
-  library(miniUI)
-  
+  env = environment()
   ui <- miniPage(
     gadgetTitleBar("Log Viewer"),
     miniTabstripPanel(
@@ -44,14 +45,13 @@ logViewerAddin <- function() {
     })
 
     observeEvent(input$create_logger_btn, {
-      library(log4r)
-      assign(input$logger_name, create.logger(), envir = as.environment(".GlobalEnv"))
+      assign(input$logger_name, create.logger(), envir = env)
       
-      assign_logfile = paste0("logfile(", input$logger_name ,") = file.path('", input$logger_location,"')")
-      assign_level = paste0("level(",input$logger_name, ") = '", input$create_logger_level,"'")
+      assign_logfile = paste0("log4r::logfile(", input$logger_name ,") = file.path('", input$logger_location,"')")
+      assign_level = paste0("log4r::level(",input$logger_name, ") = '", input$create_logger_level,"'")
 
-      eval(parse(text = assign_logfile ), envir = as.environment(".GlobalEnv"))
-      eval(parse(text = assign_level), envir = as.environment(".GlobalEnv"))
+      eval(parse(text = assign_logfile), envir = env)
+      eval(parse(text = assign_level), envir = env)
     })
     
     observe({
@@ -112,7 +112,7 @@ logViewerAddin <- function() {
 
     # When the Done button is clicked, return a value
     observeEvent(input$done, {
-      stopApp()
+      stopApp(assign_logfile)
     })
   }
 

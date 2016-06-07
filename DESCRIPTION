@@ -1,9 +1,10 @@
 Package: logviewr
-Authors@R: c(person("Aaron", "Hoffer", email="ayayron@users.noreply.github.com",
+Authors@R: c(person("Aaron", "Hoffer", email="ahoffer42@gmail.com",
     role=c("aut","cre")))
+Author: Aaron Hoffer
+Maintainer: Aaron Hoffer <ahoffer42@gmail.com>
 Version: 0.1.0
 Date: 2016-06-06
-License: MIT
 Title: Viewing and Filtering log4R logs in RStudio
 Description: Interactive shiny app to view all the log4R loggers in your Rstudio
     session and be able to filter the log information.
@@ -14,5 +15,11 @@ Imports:
     miniUI,
     rstudioapi,
     log4r
+Suggests:
+	knitr
 URL: https://github.com/ayayron/logviewr
+BugReports: https://github.com/ayayron/logviewr/issues
+License: MIT + file LICENSE
+LazyData: true
+VignetteBuilder: knitr
 RoxygenNote: 5.0.1
