@@ -3,14 +3,16 @@
 logViewerAddin <- function() {
   library(shiny)
   library(miniUI)
-  env = reactiveValues(env = ls(".GlobalEnv"))
+  
   ui <- miniPage(
     gadgetTitleBar("Log Viewer"),
     miniTabstripPanel(
       miniTabPanel("View", icon = icon("search"),
-    miniContentPanel(
+        miniButtonBlock(actionButton("refresh_btn", "Refresh", icon = icon("refresh"))),
+        miniContentPanel(
       h2("View log4r Logs Currently Available in R Session"),
       hr(),
+      
       fillRow(
       selectInput("log_list", "List of Loggers", choices = list()),
       selectInput("level_filter", "At Least Level:", 
@@ -36,16 +38,25 @@ logViewerAddin <- function() {
   
   server <- function(input, output, session) {
     # Define reactive expressions, outputs, etc.
+    
+    get_env = eventReactive(input$refresh_btn,{
+      ls(".GlobalEnv")
+    })
+
     observeEvent(input$create_logger_btn, {
       library(log4r)
       assign(input$logger_name, create.logger(), envir = as.environment(".GlobalEnv"))
-      eval(parse(text = paste0("logfile(", input$logger_name ,") = file.path('", input$logger_location,"')")))
-      eval(parse(text = paste0("level(",input$logger_name, ") = '", input$create_logger_level,"'")))
+      
+      assign_logfile = paste0("logfile(", input$logger_name ,") = file.path('", input$logger_location,"')")
+      assign_level = paste0("level(",input$logger_name, ") = '", input$create_logger_level,"'")
+
+      eval(parse(text = assign_logfile ), envir = as.environment(".GlobalEnv"))
+      eval(parse(text = assign_level), envir = as.environment(".GlobalEnv"))
     })
     
     observe({
       # find the current objects in the R environment that are loggers
-      obj_class = sapply(env$env, function(x){class(get(x))})
+      obj_class = sapply(get_env(), function(x){class(get(x))})
       updateSelectInput(session, "log_list", 
                         choices = names(as.list(obj_class[obj_class == "logger"])))
     })
