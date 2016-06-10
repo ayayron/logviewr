@@ -5,9 +5,10 @@ Author: Aaron Hoffer
 Maintainer: Aaron Hoffer <ahoffer42@gmail.com>
 Version: 0.1.0
 Date: 2016-06-06
-Title: Viewing and Filtering log4R logs in RStudio
-Description: Interactive shiny app to view all the log4R loggers in your Rstudio
-    session and be able to filter the log information.
+Title: Creating, viewing, and filtering log4R logs in RStudio
+Description: Interactive Rstudio Addin to create a log4r logger in
+    the active document in your rstudio session and view all the 
+    log4R loggers in your Rstudio session and be able to filter the log information.
 Depends:
     R (>= 2.10)
 Imports:

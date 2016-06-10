@@ -4,33 +4,40 @@ logViewerAddin <- function() {
   ui <- miniPage(
     gadgetTitleBar("Log Viewer"),
     miniTabstripPanel(
-      miniTabPanel("View", icon = icon("search"),
-        miniButtonBlock(actionButton("refresh_btn", "Refresh", icon = icon("refresh"))),
-        miniContentPanel(
-      h2("View log4r Logs Currently Available in R Session"),
-      hr(),
-      
-      fillRow(
-      selectInput("log_list", "List of Loggers", choices = list()),
-      selectInput("level_filter", "At Least Level:", 
-                  choices = list("DEBUG", "INFO", "WARN", "ERROR", "FATAL"),
-                  selected = "DEBUG"), height = "75px"),
-      fillRow(textInput("log_search", "Search for Log Text"), height = "50px"),
-      fillRow(checkboxInput("ignore_case", "Ignore Case?", value = TRUE), height = "75px"),
-      fillRow(verbatimTextOutput("log_text"))
-    )
-  ),
     miniTabPanel("Create", icon = icon("plus-square"),
       miniContentPanel(
         h2("Create log4r Object in RStudio Session"),
         hr(),
-        textInput("logger_name", "Logger Object Name", value = "logger"),
-        selectInput("create_logger_level", "Set Logger Level", 
+        fillRow(textInput("logger_name", "Logger Object Name", value = "logger"),
+                selectInput("create_logger_level", "Set Logger Level", 
                     choices = list("DEBUG", "INFO", "WARN", "ERROR", "FATAL")),
-        textInput("logger_location", "Logfile location", value = "./logfile.log"),
-        actionButton("create_logger_btn", "Create Logger")
+                height = "75px"),
+        fillRow(textInput("logger_location", "Logfile location", value = "./logfile.log"),
+                textInput("line_location", "Enter the line number to start the log", 
+                          value = "1"), height = "75px"),
+        fillRow(checkboxInput("print_to_log", "Convert Print Statements to Logs?"),
+                actionButton("create_logger_btn", "Create Logger", class = "btn-primary"),
+                height = "75px"),
+        verbatimTextOutput("code_output")
       )
-    )
+    ),
+      miniTabPanel("View", icon = icon("search"),
+                   miniButtonBlock(actionButton("refresh_btn", "Refresh", 
+                                                class = "btn-primary", icon = icon("refresh"))),
+                   miniContentPanel(
+                     h2("View log4r Logs Currently Available in R Session"),
+                     hr(),
+                     
+                     fillRow(
+                       selectInput("log_list", "List of Loggers", choices = list()),
+                       selectInput("level_filter", "At Least Level:", 
+                                   choices = list("DEBUG", "INFO", "WARN", "ERROR", "FATAL"),
+                                   selected = "DEBUG"), height = "75px"),
+                     fillRow(textInput("log_search", "Search for Log Text"), height = "50px"),
+                     fillRow(checkboxInput("ignore_case", "Ignore Case?", value = TRUE), height = "75px"),
+                     fillRow(verbatimTextOutput("log_text"))
+                   )
+      )
   ))
   
   server <- function(input, output, session) {
@@ -40,16 +47,17 @@ logViewerAddin <- function() {
       ls(".GlobalEnv")
     })
 
-    observeEvent(input$create_logger_btn, {
-      assign(input$logger_name, create.logger(), envir = as.environment(".GlobalEnv"))
-      
-      assign_logfile = paste0("log4r::logfile(", input$logger_name ,") = file.path('", input$logger_location,"')")
-      assign_level = paste0("log4r::level(",input$logger_name, ") = '", input$create_logger_level,"'")
+    create_logger = reactive({
+      assign_logfile = paste0("log4r::logfile(", input$logger_name,
+                              ") = file.path('", input$logger_location,"')")
+      assign_level = paste0("log4r::level(",input$logger_name, ") = '",
+                            input$create_logger_level,"'")
 
-      eval(parse(text = assign_logfile), envir = as.environment(".GlobalEnv"))
-      eval(parse(text = assign_level), envir = as.environment(".GlobalEnv"))
+      c("# creating log file", "library(log4r)",
+              paste(input$logger_name, "<- log4r::create.logger()"),
+              assign_logfile,assign_level, "")
     })
-    
+
     observe({
       # find the current objects in the R environment that are loggers
       obj_class = sapply(get_env(), function(x){class(get(x))})
@@ -93,9 +101,9 @@ logViewerAddin <- function() {
         
         paste(sub_log[grep(input$log_search, sub_log$lines, 
                            ignore.case = input$ignore_case),],collapse = "\n")
-      }, warning = function (w) {
+      }, warning = function(w) {
         return(w$message)
-      }, error = function (e) {
+      }, error = function(e) {
         return(e$message)
       }, finally = {})
     
@@ -108,10 +116,45 @@ logViewerAddin <- function() {
 
     # When the Done button is clicked, return a value
     observeEvent(input$done, {
-      stopApp(assign_logfile)
+      stopApp()
     })
+    
+    create_code = function() {
+      # get the active document text and render it 
+      # with the logger and the updated print2log changes
+      doc = rstudioapi::getActiveDocumentContext()
+      create_log_lines = paste(create_logger(), collapse = "\n")
+      
+      if (input$line_location == "1" || is.na(input$line_location)) {
+        code_lines = c(create_log_lines, doc$contents)
+      } else if (as.integer(input$line_location) > length(doc$contents)) {
+        code_lines = c(doc$contents, create_log_lines)
+      } else if (as.integer(input$line_location) > 1) {
+        code_lines = c(doc$contents[1:as.integer(input$line_location)], "",
+                       create_log_lines,
+                       doc$contents[as.integer(input$line_location):length(doc$contents)])
+      }
+      
+      if (input$print_to_log) {
+        code_lines = sub("print\\(",
+                         paste0("log4r::",input$create_logger_level,"(", input$logger_name, ", "),
+                         code_lines)
+      }
+      
+      return(paste(code_lines,collapse = "\n"))
+    }
+    
+    output$code_output = renderText({
+      create_code()
+    })
+    
+    observeEvent(input$create_logger_btn, {
+      rstudioapi::setDocumentContents(create_code())
+      stopApp()
+    })
+    
   }
 
-  viewer <- dialogViewer("LogViewr")
+  viewer <- dialogViewer("LogViewr", width = 800, height = 800)
   runGadget(ui, server, viewer = viewer)
 }
