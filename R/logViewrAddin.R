@@ -137,7 +137,7 @@ logViewerAddin <- function() {
       
       if (input$print_to_log) {
         code_lines = sub("print\\(",
-                         paste0("log4r::",input$create_logger_level,"(", input$logger_name, ", "),
+                         paste0("log4r::",tolower(input$create_logger_level),"(", input$logger_name, ", "),
                          code_lines)
       }
       
