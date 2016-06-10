@@ -1,4 +1,5 @@
-# logviewr
+# logviewr [![Build Status](https://travis-ci.org/ayayron/logviewr.svg?branch=master)](https://travis-ci.org/ayayron/logviewr)
+
 The logviewr package is an easy way to view and filter [log4r](https://cran.r-project.org/web/packages/log4r/index.html) objects using the new functionality of [RStudio Add-ins](https://rstudio.github.io/rstudioaddins/) (available in v0.99.878 or later).
 
 ## Installation
