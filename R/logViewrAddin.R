@@ -18,6 +18,7 @@ logViewerAddin <- function() {
         fillRow(checkboxInput("print_to_log", "Convert Print Statements to Logs?"),
                 actionButton("create_logger_btn", "Create Logger", class = "btn-primary"),
                 height = "75px"),
+        uiOutput("warning_output"),
         verbatimTextOutput("code_output")
       )
     ),
@@ -119,6 +120,16 @@ logViewerAddin <- function() {
       stopApp()
     })
     
+    output$warning_output = renderUI({
+      doc = rstudioapi::getActiveDocumentContext()
+      if (doc$id == "#console") {
+        return(tagList(icon("exclamation-triangle"), 
+                       span("Warning: Your active document is the console.\
+                            To use a file, close this Addin, click in the window\
+                            of your document and open the Addin again.")))
+      }
+      
+    })
     create_code = function() {
       # get the active document text and render it 
       # with the logger and the updated print2log changes
