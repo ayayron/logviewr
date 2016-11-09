@@ -3,7 +3,7 @@
 logViewerAddin <- function() {
   ui <- miniPage(
     gadgetTitleBar("Log Viewer"),
-    miniTabstripPanel(
+    miniTabstripPanel(selected = "View",
     miniTabPanel("Create", icon = icon("plus-square"),
       miniContentPanel(
         h2("Create log4r Object in RStudio Session"),
@@ -18,8 +18,8 @@ logViewerAddin <- function() {
         fillRow(checkboxInput("print_to_log", "Convert Print Statements to Logs?"),
                 actionButton("create_logger_btn", "Create Logger", class = "btn-primary"),
                 height = "75px"),
-        uiOutput("warning_output"),
-        verbatimTextOutput("code_output")
+        uiOutput("warning_output_create"),
+        shinyAce::aceEditor("code_output", readOnly = TRUE, mode = "r", wordWrap = TRUE)
       )
     ),
       miniTabPanel("View", icon = icon("search"),
@@ -36,7 +36,8 @@ logViewerAddin <- function() {
                                    selected = "DEBUG"), height = "75px"),
                      fillRow(textInput("log_search", "Search for Log Text"), height = "50px"),
                      fillRow(checkboxInput("ignore_case", "Ignore Case?", value = TRUE), height = "75px"),
-                     fillRow(verbatimTextOutput("log_text"))
+                     uiOutput("warning_output_view"),
+                     fillRow(shinyAce::aceEditor("log_text", readOnly = TRUE, wordWrap = TRUE))
                    )
       )
   ))
@@ -111,8 +112,8 @@ logViewerAddin <- function() {
       return(results)
     })
     
-    output$log_text = renderText({
-      filtered_log()
+    observe({
+      shinyAce::updateAceEditor(session, "log_text", filtered_log())
     })
 
     # When the Done button is clicked, return a value
@@ -120,7 +121,7 @@ logViewerAddin <- function() {
       stopApp()
     })
     
-    output$warning_output = renderUI({
+    output$warning_output_create = renderUI({
       doc = rstudioapi::getActiveDocumentContext()
       if (doc$id == "#console") {
         return(tagList(icon("exclamation-triangle"), 
@@ -130,6 +131,19 @@ logViewerAddin <- function() {
       }
       
     })
+    
+    output$warning_output_view = renderUI({
+      if (length(input$log_list) == 1 & input$log_list[[1]] == "") {
+        return(tagList(icon("exclamation-triangle"), 
+                       span("Warning: Click the 'Refresh' button at the top\
+                            of the page. If you still don't see any logger objects\
+                            then there are no logger object loaded into\
+                            the current RStudio session. Close this addin and Run or\
+                            Source a file with a log4r logger. Go to the 'Create' tab\
+                            if you need to create a logger.")))
+      }
+    })
+    
     create_code = function() {
       # get the active document text and render it 
       # with the logger and the updated print2log changes
@@ -155,15 +169,14 @@ logViewerAddin <- function() {
       return(paste(code_lines,collapse = "\n"))
     }
     
-    output$code_output = renderText({
-      create_code()
+    observe({
+      shinyAce::updateAceEditor(session, "code_output", create_code())
     })
     
     observeEvent(input$create_logger_btn, {
       rstudioapi::setDocumentContents(create_code())
       stopApp()
     })
-    
   }
 
   viewer <- dialogViewer("LogViewr", width = 800, height = 800)

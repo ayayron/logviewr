@@ -15,7 +15,8 @@ Imports:
     shiny (>= 0.13),
     miniUI,
     rstudioapi,
-    log4r
+    log4r,
+    shinyAce
 Suggests:
 	knitr
 URL: https://github.com/ayayron/logviewr
